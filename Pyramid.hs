@@ -9,17 +9,18 @@ data Pyramid = Pyramid Int (Map.Map Point Char) deriving (Show)
 data Point = Point Int Int Int deriving (Show, Eq, Ord)
 data Shape = PyrI | PyrJ | PyrL | PyrP | PyrU | PyrZ deriving (Eq,Show)
 
-pieces = zip "1234" (repeat PyrL) ++
-         [('I',PyrI), ('J',PyrJ),('P',PyrP),('Z',PyrZ), ('U',PyrU)]
-         
+pieces = [('I',PyrI), ('U',PyrU)] ++
+         zip "1234" (repeat PyrL) ++
+         [('J',PyrJ),('P',PyrP),('Z',PyrZ)]
 
+-- speed ups
+-- * filter out pyramids which have isolated points
+-- * don't repeat L positions
+         
 pyrSolutions :: Pyramid -> [(Char, Shape)] -> [Pyramid]
 pyrSolutions pyr [] = [pyr]
-pyrSolutions (pyr@(Pyramid _ m)) ((c, shape):xs) =
-    concat [pyrSolutions (add pyr c ps) xs
-            | ps <- positions shape,
-              all (flip Map.notMember m) ps
-           ]
+pyrSolutions pyr ((c, shape):xs) = concat [pyrSolutions (add pyr c ps) xs
+                                           | ps <- positions pyr shape]
     
 toPoint :: (Int, Int, Int) -> Point
 toPoint (i, j, k) = Point i j k
@@ -33,18 +34,11 @@ canonical shape = map toPoint $ which shape
           which PyrZ = [(0,0,0), (0,0,1), (0,1,2), (0,1,3)] -- 24 : 4 for each of 6 edges
           which PyrL = [(0,0,0), (0,0,1), (0,0,2), (-1,0,2)] -- 24 : 4 for each of 6 edges
 
-positions :: Shape -> [[Point]]
-positions shape =
-    let pp5 = pyramidPoints 5
-        everyPos = [translate p o | p <- Set.toList pp5, o <- orientations shape]
-    in filter (all (flip Set.member pp5)) everyPos
-       
-
 orientations :: Shape -> [[Point]]
 orientations shape
-    | shape == PyrI =
-        let two = take 2 $ iterate (map rotateW) $ canonical shape
-        in concat $ map (take 3 . iterate (map rotateZ)) two
+    | shape == PyrI = [canonical shape]
+        --let two = take 2 $ iterate (map rotateW) $ canonical shape
+        --in concat $ map (take 3 . iterate (map rotateZ)) two
     | otherwise =
     let two = if (elem shape [PyrJ,PyrP])
               then take 2 $ iterate (map reflectY) $ canonical shape
@@ -71,7 +65,20 @@ reflectY (Point i j k) = Point i j (j-k)
 rotateXpi :: Point -> Point -- by pi
 rotateXpi (Point i j k) = Point (-i) (-j) (k-j)
        
+positions :: Pyramid -> Shape -> [[Point]]
+positions pyr shape =
+    let open = Set.fromList $ openPoints pyr
+    in [points | p <- Set.toList open,
+                 o <- orientations shape,
+                 let points = translate p o,
+                 all (flip Set.member open) points ]
 
+openPoints :: Pyramid -> [Point]
+openPoints (Pyramid size m) = [point | i<-[0..(size-1)],
+                                       j<-[0..i],
+                                       k<-[0..j],
+                                       let point = Point i j k,
+                                       Map.notMember point m ]
 
 emptyPyramid :: Int -> Pyramid
 emptyPyramid size = Pyramid size $ Map.fromList []
@@ -79,10 +86,6 @@ emptyPyramid size = Pyramid size $ Map.fromList []
 add :: Pyramid -> Char -> [Point]  -> Pyramid
 add (Pyramid size mp) c points = Pyramid size $
                                  foldl (\m p -> Map.insert p c m) mp points
-
-pyramidPoints :: Int -> (Set.Set Point)
-pyramidPoints size = Set.fromList [Point i j k
-                                   | i<-[0..(size-1)], j<-[0..i], k<-[0..j]]
 
 displayPoint :: Point -> Pyramid -> String
 displayPoint point (Pyramid size mp) = case Map.lookup point mp of
