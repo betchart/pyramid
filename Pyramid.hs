@@ -14,17 +14,38 @@ pieces = [('I',PyrI), ('U',PyrU)] ++
          [('J',PyrJ),('P',PyrP),('Z',PyrZ)]
 
 -- speed ups
--- * filter out pyramids which have isolated points
 -- * don't repeat L positions
          
 pyrSolutions :: Pyramid -> [(Char, Shape)] -> [Pyramid]
 pyrSolutions pyr [] = [pyr]
-pyrSolutions pyr ((c, shape):xs) = concat [pyrSolutions (add pyr c ps) xs
-                                           | ps <- positions pyr shape]
+pyrSolutions pyr ((c, shape):xs) =
+    case null (isoPoints pyr) of
+      False -> []
+      otherwise -> concat [pyrSolutions (add pyr c ps) xs
+                           | ps <- positions pyr shape]
     
 toPoint :: (Int, Int, Int) -> Point
 toPoint (i, j, k) = Point i j k
 
+neighbors :: Point -> [Point]
+neighbors (Point 0 0 0) = map toPoint [(1,0,0), (1,1,0), (1,1,1)]
+neighbors (Point i 0 0) = map toPoint [(i-1,0,0), (i+1,0,0),
+                                       (i,1,0), (i,1,1),
+                                       (i+1,1,0), (i+1,1,1)]
+neighbors (Point i j k)
+    | i==j && k==0 = map toPoint [(i-1,i-1,0), (i+1,i+1,0),
+                                  (i,i-1,0), (i,i,1),
+                                  (i+1,i,0), (i+1,i+1,1)]
+    | i==j && j==k =  map toPoint [(i-1,i-1,i-1), (i+1,i+1,i+1),
+                                   (i,i,i-1), (i,i-1,i-1),
+                                   (i+1,i,i), (i+1,i+1,i)]
+    | otherwise = map toPoint [(i,j,k+1), (i,j,k-1),
+                               (i,j-1,k), (i,j-1,k-1),
+                               (i,j+1,k), (i,j+1,k+1),
+                               (i-1, j, k), (i-1, j-1, k), (i-1, j-1, k-1),
+                               (i+1, j, k), (i+1, j+1, k), (i+1, j+1, k+1)
+                              ]
+                    
 canonical :: Shape -> [Point]
 canonical shape = map toPoint $ which shape
     where which PyrI = [(0,0,0), (0,0,1), (0,0,2)] -- 6 : one for each edge of tetrahedron
@@ -80,6 +101,11 @@ openPoints (Pyramid size m) = [point | i<-[0..(size-1)],
                                        let point = Point i j k,
                                        Map.notMember point m ]
 
+isoPoints :: Pyramid -> [Point]
+isoPoints pyr = let open = Set.fromList $ openPoints pyr
+                in [o | o <- Set.toList open,
+                        not . any (flip elem open) $ neighbors o]
+                              
 emptyPyramid :: Int -> Pyramid
 emptyPyramid size = Pyramid size $ Map.fromList []
 
