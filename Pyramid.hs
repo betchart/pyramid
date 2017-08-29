@@ -15,12 +15,12 @@ pieces = zip "1234" (repeat PyrL) ++
 
 pyrSolutions :: Pyramid -> [(Char, Shape)] -> [Pyramid]
 pyrSolutions pyr [] = [pyr]
-pyrSolutions (pyr@(Pyramid size m)) ((c, shape):xs) =
+pyrSolutions (pyr@(Pyramid _ m)) ((c, shape):xs) =
     concat [pyrSolutions (add pyr c ps) xs
             | ps <- positions shape,
               all (flip Map.notMember m) ps
            ]
-
+    
 toPoint :: (Int, Int, Int) -> Point
 toPoint (i, j, k) = Point i j k
 
