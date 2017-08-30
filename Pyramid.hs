@@ -9,9 +9,8 @@ data Pyramid = Pyramid Int (Map.Map Point Char) deriving (Show)
 data Point = Point Int Int Int deriving (Show, Eq, Ord)
 data Shape = PyrI | PyrJ | PyrL | PyrP | PyrU | PyrZ deriving (Eq,Show)
 
-pieces = [('I',PyrI), ('U',PyrU)] ++
-         zip "1234" (repeat PyrL) ++
-         [('J',PyrJ),('P',PyrP),('Z',PyrZ)]
+pieces = zip "1234" (repeat PyrL) ++
+         [('I',PyrI), ('U',PyrU),('J',PyrJ),('P',PyrP),('Z',PyrZ)]
 
 -- speed ups
 -- * don't repeat L positions
