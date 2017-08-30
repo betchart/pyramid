@@ -10,11 +10,11 @@ data Point = Point Int Int Int deriving (Show, Eq, Ord)
 data Shape = PyrI | PyrJ | PyrL | PyrP | PyrU | PyrZ deriving (Eq,Show)
 
 pieces = zip "1234" (repeat PyrL) ++
-         [('I',PyrI), ('U',PyrU),('J',PyrJ),('P',PyrP),('Z',PyrZ)]
+         [('I',PyrI), ('U',PyrU), ('J',PyrJ), ('P',PyrP), ('Z',PyrZ)]
 
 -- speed ups
 -- * don't repeat L positions
-         
+
 pyrSolutions :: Pyramid -> [(Char, Shape)] -> [Pyramid]
 pyrSolutions pyr [] = [pyr]
 pyrSolutions pyr ((c, shape):xs) =
@@ -44,7 +44,22 @@ neighbors (Point i j k)
                                (i-1, j, k), (i-1, j-1, k), (i-1, j-1, k-1),
                                (i+1, j, k), (i+1, j+1, k), (i+1, j+1, k+1)
                               ]
-                    
+
+neighbors' :: Point -> [Point]
+neighbors' point@(Point i j k)
+             | (i,j,k) == (0,0,0) = below
+             | (j,k) == (0,0) = mdis $ concat [below, south, take 1 above]
+             | (j,k) == (i,0) = mdis $ concat [below, ene, drop 2 above]
+             | (j,k) == (i,i) = mdis $ concat [below, wnw, take 1 $ drop 1 above]
+             | otherwise = mdis todos
+           where mdis = map (displace point)
+                 below = take 3 $ iterate rotateZ (Point 1 0 0)
+                 above = map rotateXpi below
+                 south = take 2 $ iterate reflectY (Point 0 1 0)
+                 ene = map rotateZ south
+                 wnw = map rotateZ ene
+                 todos = concat [above, below, south, ene, wnw]
+
 canonical :: Shape -> [Point]
 canonical shape = map toPoint $ which shape
     where which PyrI = [(0,0,0), (0,0,1), (0,0,2)] -- 6 : one for each edge of tetrahedron
@@ -72,7 +87,10 @@ translate :: Point -> [Point] -> [Point]
 translate _ [] = []
 translate (Point a b c) ((Point i j k):ps) =
     (Point a b c):[Point (e-i+a) (f-j+b) (g-k+c) | (Point e f g) <- ps]
-                    
+
+displace :: Point -> Point -> Point
+displace (Point i j k) (Point di dj dk) = Point (i+di) (j+dj) (k+dk)
+
 rotateZ :: Point -> Point -- by 2pi/3
 rotateZ (Point i j k) = Point i (i-k) (j-k)
 
@@ -103,7 +121,7 @@ openPoints (Pyramid size m) = [point | i<-[0..(size-1)],
 isoPoints :: Pyramid -> [Point]
 isoPoints pyr = let open = Set.fromList $ openPoints pyr
                 in [o | o <- Set.toList open,
-                        not . any (flip elem open) $ neighbors o]
+                        not . any (flip elem open) $ neighbors' o] -- could use set difference null
                               
 emptyPyramid :: Int -> Pyramid
 emptyPyramid size = Pyramid size $ Map.fromList []
