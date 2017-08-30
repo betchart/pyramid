@@ -27,26 +27,7 @@ toPoint :: (Int, Int, Int) -> Point
 toPoint (i, j, k) = Point i j k
 
 neighbors :: Point -> [Point]
-neighbors (Point 0 0 0) = map toPoint [(1,0,0), (1,1,0), (1,1,1)]
-neighbors (Point i 0 0) = map toPoint [(i-1,0,0), (i+1,0,0),
-                                       (i,1,0), (i,1,1),
-                                       (i+1,1,0), (i+1,1,1)]
-neighbors (Point i j k)
-    | i==j && k==0 = map toPoint [(i-1,i-1,0), (i+1,i+1,0),
-                                  (i,i-1,0), (i,i,1),
-                                  (i+1,i,0), (i+1,i+1,1)]
-    | i==j && j==k =  map toPoint [(i-1,i-1,i-1), (i+1,i+1,i+1),
-                                   (i,i,i-1), (i,i-1,i-1),
-                                   (i+1,i,i), (i+1,i+1,i)]
-    | otherwise = map toPoint [(i,j,k+1), (i,j,k-1),
-                               (i,j-1,k), (i,j-1,k-1),
-                               (i,j+1,k), (i,j+1,k+1),
-                               (i-1, j, k), (i-1, j-1, k), (i-1, j-1, k-1),
-                               (i+1, j, k), (i+1, j+1, k), (i+1, j+1, k+1)
-                              ]
-
-neighbors' :: Point -> [Point]
-neighbors' point@(Point i j k)
+neighbors point@(Point i j k)
              | (i,j,k) == (0,0,0) = below
              | (j,k) == (0,0) = mdis $ concat [below, south, take 1 above]
              | (j,k) == (i,0) = mdis $ concat [below, ene, drop 2 above]
@@ -89,7 +70,7 @@ translate (Point a b c) ((Point i j k):ps) =
     (Point a b c):[Point (e-i+a) (f-j+b) (g-k+c) | (Point e f g) <- ps]
 
 displace :: Point -> Point -> Point
-displace (Point i j k) (Point di dj dk) = Point (i+di) (j+dj) (k+dk)
+displace (Point i j k) (Point a b c) = Point (i+a) (j+b) (k+c)
 
 rotateZ :: Point -> Point -- by 2pi/3
 rotateZ (Point i j k) = Point i (i-k) (j-k)
@@ -121,8 +102,8 @@ openPoints (Pyramid size m) = [point | i<-[0..(size-1)],
 isoPoints :: Pyramid -> [Point]
 isoPoints pyr = let open = Set.fromList $ openPoints pyr
                 in [o | o <- Set.toList open,
-                        not . any (flip elem open) $ neighbors' o] -- could use set difference null
-                              
+                        not . any (flip elem open) $ neighbors o]
+
 emptyPyramid :: Int -> Pyramid
 emptyPyramid size = Pyramid size $ Map.fromList []
 
