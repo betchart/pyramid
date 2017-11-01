@@ -4,6 +4,7 @@ import qualified Data.Map as Map
 import qualified Data.List as List
 import Pyramid
 import PPoint
+import Shape
 import StrUtils
     
 displayPoint :: Point -> Pyramid -> String

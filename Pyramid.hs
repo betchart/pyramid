@@ -44,4 +44,3 @@ isoPoints :: Pyramid -> [Point]
 isoPoints pyr = let open = Set.fromList $ openPoints pyr
                 in [o | o <- Set.toList open,
                         not . any (flip elem open) $ pyrNeighbors o]
-
